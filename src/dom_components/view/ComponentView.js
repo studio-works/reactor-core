@@ -40,6 +40,7 @@ export default Backbone.View.extend({
     this.listenTo(model, 'active', this.onActive);
     $el.data('model', model);
     model.view = this;
+    model.views.push(this);
     this.initClasses();
     this.initComponents({ avoidRender: 1 });
     this.events = {
@@ -171,7 +172,7 @@ export default Backbone.View.extend({
     const status = this.model.get('status');
     const pfx = this.pfx;
     const ppfx = this.ppfx;
-    const selectedCls = `${pfx}selected`;
+    const selectedCls = `${ppfx}selected`;
     const selectedParentCls = `${selectedCls}-parent`;
     const freezedCls = `${ppfx}freezed`;
     const hoveredCls = `${ppfx}hovered`;

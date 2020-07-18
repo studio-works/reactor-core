@@ -68,7 +68,8 @@ export default () => {
     init(config = {}) {
       c = {
         ...defaults,
-        ...config
+        ...config,
+        module: this
       };
 
       this.em = c.em;
@@ -578,6 +579,10 @@ export default () => {
      */
     getFrameWrapperEl() {
       return CanvasView.frame.getWrapper();
+    },
+
+    getFrames() {
+      return canvas.get('frames').map(item => item);
     }
   };
 };

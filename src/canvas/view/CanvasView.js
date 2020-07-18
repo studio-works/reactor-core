@@ -9,6 +9,7 @@ import {
   getElRect
 } from 'utils/mixins';
 import FrameView from './FrameView';
+import FramesView from './FramesView';
 
 const $ = Backbone.$;
 let timerZoom;
@@ -36,6 +37,7 @@ export default Backbone.View.extend({
     this.ppfx = this.config.pStylePrefix || '';
     this.className = this.config.stylePrefix + 'canvas';
     this.listenTo(this.em, 'change:canvasOffset', this.clearOff);
+    this.listenTo(this.em, 'frame:scroll', this.onFrameScroll);
     this.listenTo(model, 'change:zoom change:x change:y', this.updateFrames);
     this.toggleListeners(1);
     this.frame = new FrameView({
@@ -124,13 +126,13 @@ export default Backbone.View.extend({
    * Update tools position
    * @private
    */
-  onFrameScroll() {
-    var u = 'px';
-    var body = this.frame.el.contentDocument.body;
-    const zoom = this.getZoom();
-    this.toolsEl.style.top = '-' + body.scrollTop * zoom + u;
-    this.toolsEl.style.left = '-' + body.scrollLeft * zoom + u;
-    this.em.trigger('canvasScroll');
+  onFrameScroll({ body = {} } = {}) {
+    // const u = 'px';
+    // const bodyEl = this.frame.el.contentDocument.body;
+    // const zoom = this.getZoom();
+    // this.toolsEl.style.top = '-' + bodyEl.scrollTop * zoom + u;
+    // this.toolsEl.style.left = '-' + bodyEl.scrollLeft * zoom + u;
+    // this.em.trigger('canvasScroll');
   },
 
   /**
@@ -360,7 +362,7 @@ export default Backbone.View.extend({
   },
 
   /**
-   * Returns element's data info
+   * Returns element's rect info
    * @param {HTMLElement} el
    * @return {Object}
    * @private
@@ -474,14 +476,20 @@ export default Backbone.View.extend({
   },
 
   render() {
-    const { el, $el, ppfx, model } = this;
-    this.wrapper = model.get('wrapper');
+    const { el, $el, ppfx, model, config, em } = this;
+    const cssc = em.get('CssComposer');
+    const wrapper = model.get('wrapper');
     $el.html(this.template());
     const $frames = $el.find('[data-frames]');
     this.framesArea = $frames.get(0);
+    this.wrapper = wrapper;
 
-    if (this.wrapper && typeof this.wrapper.render == 'function') {
-      model.get('frame').set('wrapper', this.wrapper);
+    if (wrapper && typeof wrapper.render == 'function') {
+      model.get('frame').set({
+        wrapper,
+        root: wrapper.getWrapper(),
+        styles: cssc.getAll()
+      });
       $frames.append(this.frame.render().el);
       var frame = this.frame;
       if (this.config.scripts.length === 0) {
@@ -490,7 +498,10 @@ export default Backbone.View.extend({
         this.renderScripts(); // will call renderBody later
       }
     }
-    $el.find('[data-tools]').append(`
+
+    const toolsWrp = $el.find('[data-tools]');
+    this.toolsWrapper = toolsWrp.get(0);
+    toolsWrp.append(`
       <div id="${ppfx}tools" style="pointer-events:none">
         <div class="${ppfx}highlighter"></div>
         <div class="${ppfx}badge"></div>
@@ -515,6 +526,19 @@ export default Backbone.View.extend({
     this.fixedOffsetEl = el.querySelector(`.${ppfx}offset-fixed-v`);
     this.toolsEl = toolsEl;
     this.el.className = this.className;
+
+    // Render all frames
+    const frames = new FramesView({
+      collection: model.get('frames'),
+      config: {
+        ...config,
+        renderContent: 1,
+        canvasView: this
+      }
+    });
+    frames.render();
+    $frames.append(frames.el);
+
     return this;
   }
 });
